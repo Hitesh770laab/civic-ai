@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import MurmurationWordmark from '@/components/ui/murmuration-wordmark'
 import {
   Activity, AlertCircle, ArrowRight, ArrowUpRight, Award, CalendarDays,
   Check, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, Clock3, Copy,
@@ -1090,6 +1091,29 @@ function Dashboard({ user, issues, tenders, onReport, onOpenIssue, onPage }) {
             <span>{todayLabel()}</span>
           </div>
         </div>
+      </section>
+
+      {/* Murmuration Wordmark Starling Flock Banner writing "Civic ai" */}
+      <section className="hero-murmuration-card">
+        <MurmurationWordmark
+          word="Civic ai"
+          birds={3600}
+          preset="dusk"
+          height="220px"
+          interactive={true}
+          reeds={true}
+          className="hero-starling-flock"
+        >
+          <div className="murmuration-overlay-content">
+            <div className="murmuration-tag">
+              <span className="live-dot" />
+              <span>INTERACTIVE FLOCK · MOVE CURSOR OVER SKY TO SCATTER</span>
+            </div>
+            <span className="murmuration-caption">
+              Watch starlings assemble into <strong>Civic ai</strong>
+            </span>
+          </div>
+        </MurmurationWordmark>
       </section>
 
       {/* Hero Section with Chandigarh City Art & Contour Ripples */}
