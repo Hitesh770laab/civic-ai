@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import MurmurationWordmark from '@/components/ui/murmuration-wordmark'
+import DarwazaPreloader from '@/components/ui/darwaza-preloader'
+import LiquidNavbar from '@/components/ui/liquid-glass-navbar'
+import ScrollExpandMedia from '@/components/ui/scroll-expansion-hero'
+import CivicZoomHero from '@/components/ui/civic-zoom-hero'
+import SkyToggle from '@/components/ui/sky-toggle'
+import { motion } from 'framer-motion'
 import {
   Activity, AlertCircle, ArrowRight, ArrowUpRight, Award, CalendarDays,
   Check, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, Clock3, Copy,
@@ -8,6 +14,14 @@ import {
   Search, ShieldCheck, Sparkles, Sun, Trash2, UploadCloud, UserRound,
   WalletCards, Wrench, X, Zap,
 } from 'lucide-react'
+
+const TOP_NAV_ITEMS = [
+  { label: 'Dashboard', icon: <Activity size={15} strokeWidth={2.2} />, fx: 'glow' },
+  { label: 'My Reports', icon: <FileCheck2 size={15} strokeWidth={2.2} />, fx: 'pop' },
+  { label: 'Work Orders', icon: <WalletCards size={15} strokeWidth={2.2} />, fx: 'spin' },
+  { label: 'Fix Guide', icon: <CircleHelp size={15} strokeWidth={2.2} />, fx: 'drop' },
+]
+const TOP_NAV_KEYS = ['overview', 'reports', 'spending', 'guide']
 
 const SOURCES = {
   tenders: 'https://etenders.chd.nic.in/nicgep/app',
@@ -21,12 +35,12 @@ const SOURCES = {
 }
 
 const CATEGORIES = [
-  { id: 'Road damage', label: 'Road damage & potholes', icon: Wrench, dept: 'MCC — B&R Engineering Wing', rts: '10 working days', tone: 'amber' },
-  { id: 'Streetlight', label: 'Streetlight fault', icon: Lightbulb, dept: 'MCC — Electrical Division', rts: '3 working days', tone: 'gold' },
-  { id: 'Waste & sanitation', label: 'Waste & sanitation', icon: Trash2, dept: 'MCC — Medical Officer of Health (MOH)', rts: '24-48 hours', tone: 'teal' },
-  { id: 'Water & drainage', label: 'Water & drainage', icon: Activity, dept: 'MCC — Public Health Department', rts: '3-7 working days', tone: 'blue' },
-  { id: 'Parks & trees', label: 'Parks & green spaces', icon: Sun, dept: 'Department of Horticulture, Chandigarh', rts: '3 working days', tone: 'sage' },
-  { id: 'Other', label: 'General municipal issue', icon: AlertCircle, dept: 'Chandigarh Jan Sampark / Respective Wing', rts: 'As per RTS Act', tone: 'neutral' },
+  { id: 'Road damage', label: 'Roads & Potholes', icon: Wrench, dept: 'MCC — B&R Engineering Wing', rts: '10 working days', tone: 'amber' },
+  { id: 'Streetlight', label: 'Streetlights & Poles', icon: Lightbulb, dept: 'MCC — Electrical Division', rts: '3 working days', tone: 'gold' },
+  { id: 'Waste & sanitation', label: 'Garbage & Waste', icon: Trash2, dept: 'MCC — Medical Officer of Health (MOH)', rts: '24-48 hours', tone: 'teal' },
+  { id: 'Water & drainage', label: 'Water Leaks & Drains', icon: Activity, dept: 'MCC — Public Health Department', rts: '3-7 working days', tone: 'blue' },
+  { id: 'Parks & trees', label: 'Parks & Fallen Trees', icon: Sun, dept: 'Department of Horticulture, Chandigarh', rts: '3 working days', tone: 'sage' },
+  { id: 'Other', label: 'Other City Issue', icon: AlertCircle, dept: 'Chandigarh Jan Sampark / Respective Wing', rts: 'As per RTS Act', tone: 'neutral' },
 ]
 
 const QUICK_SECTORS = [
@@ -79,7 +93,7 @@ function Brand({ light = false }) {
         <span />
       </span>
       <div className="brand-text">
-        <span className="brand-word">civic<span>ai</span></span>
+        <span className="brand-word">CIVIC <span>AI</span></span>
         <span className="brand-city">CHANDIGARH</span>
       </div>
     </div>
@@ -227,7 +241,7 @@ function AuthScreen({ onAuth }) {
           </div>
           <div className="auth-source">
             <span className="tiny-flag"><i /><i /><i /></span>
-            Independent civic platform · Connects to Chandigarh Jansampark & e-Tenders
+            Civic AI Platform · Integrated with Chandigarh Jansampark & e-Tenders
           </div>
         </div>
       </section>
@@ -534,8 +548,8 @@ function StatusModal({ issue, onClose, onSave }) {
           <div className="portal-callout-note">
             <Globe2 size={18} />
             <div>
-              <b>Independent citizen record</b>
-              <p>Reference numbers are securely stored in your personal account to track future RTI escalations.</p>
+              <b>Citizen Verification Record</b>
+              <p>Reference numbers are securely linked to your account to monitor Right to Service Act compliance.</p>
             </div>
           </div>
         </div>
@@ -924,21 +938,42 @@ function IssueDetail({ issue, onClose, onMarkFiled, onComplaint, onRti, tenders 
   )
 }
 
-function Sidebar({ page, setPage, user, onLogout, openReport, mobileOpen, setMobileOpen }) {
+function Sidebar({ page, setPage, user, onLogout, openReport, mobileOpen, setMobileOpen, onReplayGate, theme, setTheme }) {
+  useEffect(() => {
+    if (!mobileOpen) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setMobileOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [mobileOpen, setMobileOpen])
+
   const nav = [
-    { id: 'overview', text: 'Civic Overview', icon: Activity },
+    { id: 'overview', text: 'Dashboard', icon: Activity },
     { id: 'reports', text: 'My Reports', icon: FileCheck2, count: user.reportCount },
-    { id: 'spending', text: 'Public Tenders Radar', icon: WalletCards },
-    { id: 'guide', text: 'Civic & RTI Guide', icon: CircleHelp },
+    { id: 'spending', text: 'City Work Orders', icon: WalletCards },
+    { id: 'guide', text: 'How to Fix Issues (Guide)', icon: CircleHelp },
   ]
 
   return (
     <>
-      {mobileOpen && <div className="mobile-scrim" onClick={() => setMobileOpen(false)} />}
+      {mobileOpen && (
+        <div
+          className="sidebar-scrim"
+          onClick={() => setMobileOpen(false)}
+          title="Click to close sidebar"
+          aria-label="Close sidebar backdrop"
+        />
+      )}
       <aside className={`sidebar ${mobileOpen ? 'sidebar-open' : ''}`}>
         <div className="side-brand-row">
           <Brand />
-          <button className="icon-button mobile-close" onClick={() => setMobileOpen(false)}>
+          <button
+            className="icon-button side-close-btn"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close sidebar menu"
+            title="Close sidebar menu"
+          >
             <X size={20} />
           </button>
         </div>
@@ -947,10 +982,12 @@ function Sidebar({ page, setPage, user, onLogout, openReport, mobileOpen, setMob
         <div className="city-status-badge">
           <span className="city-pin-icon"><MapPin size={16} /></span>
           <div className="city-info">
-            <b>Chandigarh UT</b>
+            <div className="city-title-row">
+              <b>Chandigarh UT</b>
+              <span className="live-chip"><span className="live-dot-pulse" /> LIVE</span>
+            </div>
             <span>Jansampark & Tenders Live</span>
           </div>
-          <span className="live-indicator" title="Connected to public portals" />
         </div>
 
         {/* Primary Action Button */}
@@ -996,17 +1033,49 @@ function Sidebar({ page, setPage, user, onLogout, openReport, mobileOpen, setMob
               <span>Chandigarh e-Tenders</span>
               <ExternalLink size={13} className="ext-icon" />
             </a>
+            {onReplayGate && (
+              <button
+                className="portal-quick-link"
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', font: 'inherit' }}
+                onClick={onReplayGate}
+              >
+                <Sparkles size={16} />
+                <span>Replay Entrance Gate</span>
+              </button>
+            )}
           </div>
         </div>
 
         <div className="side-spacer" />
+
+        {/* Theme Mode Switcher */}
+        {setTheme && (
+          <div className="side-theme-toggle-row">
+            <div className="side-theme-info">
+              <span className="side-theme-label">Appearance</span>
+              <span className="side-theme-sub">
+                {theme === 'dark' ? 'Night Sky (Dark)' : 'Daylight (Light)'}
+              </span>
+            </div>
+            <SkyToggle
+              id="sidebar-sky-theme-toggle"
+              checked={theme === 'dark'}
+              onChange={(isDark) => setTheme(isDark ? 'dark' : 'light')}
+              size={9.5}
+              aria-label="Toggle dark / light theme"
+            />
+          </div>
+        )}
 
         {/* User Card at Bottom */}
         <div className="user-profile-widget">
           <div className="user-avatar-bubble">{initials(user.name)}</div>
           <div className="user-details">
             <b title={user.name}>{user.name}</b>
-            <span>{user.points || 0} Civic Points</span>
+            <div className="user-karma-badge">
+              <Sparkles size={12} />
+              <span>{user.points || 0} Civic Points</span>
+            </div>
           </div>
           <button className="icon-button logout-btn" onClick={onLogout} title="Sign Out">
             <LogOut size={17} />
@@ -1077,11 +1146,11 @@ function Dashboard({ user, issues, tenders, onReport, onOpenIssue, onPage }) {
         <div className="welcome-headline">
           <div className="city-pulse-chip">
             <span className="pulse-dot" />
-            <span>CHANDIGARH MUNICIPAL GRID ACTIVE · RTS ACT ENFORCED</span>
+            <span>CHANDIGARH RESIDENT HUB · OFFICIAL COMPLAINT & TRACKING TOOL</span>
           </div>
-          <h1>Good day, {user.name.split(' ')[0]}</h1>
+          <h1>Good day, {user.name.split(' ')[0]} 👋</h1>
           <p className="welcome-subtitle">
-            Document civic issues, enforce municipal repair standards, and keep public infrastructure accountable.
+            Report potholes, dark streetlights, or waste in your sector. We prepare the official complaint letter and track government repair deadlines for you.
           </p>
         </div>
 
@@ -1093,56 +1162,48 @@ function Dashboard({ user, issues, tenders, onReport, onOpenIssue, onPage }) {
         </div>
       </section>
 
-      {/* Murmuration Wordmark Starling Flock Banner writing "Civic ai" */}
-      <section className="hero-murmuration-card">
-        <MurmurationWordmark
-          word="Civic ai"
-          birds={3600}
-          preset="dusk"
-          height="220px"
-          interactive={true}
-          reeds={true}
-          className="hero-starling-flock"
-        >
-          <div className="murmuration-overlay-content">
-            <div className="murmuration-tag">
-              <span className="live-dot" />
-              <span>INTERACTIVE FLOCK · MOVE CURSOR OVER SKY TO SCATTER</span>
-            </div>
-            <span className="murmuration-caption">
-              Watch starlings assemble into <strong>Civic ai</strong>
-            </span>
-          </div>
-        </MurmurationWordmark>
-      </section>
-
-      {/* Hero Section with Chandigarh City Art & Contour Ripples */}
-      <section className="hero-card">
-        {/* Concentric ripple rings */}
-        <div className="hero-ripples" aria-hidden="true">
-          <span className="ripple r1" />
-          <span className="ripple r2" />
-          <span className="ripple r3" />
-          <span className="ripple r4" />
+      {/* Unified Grand Hero Section with Living Starling Murmuration in the Background */}
+      <section className="hero-card hero-card-unified">
+        {/* Murmuration Living Sky & Wordmark in the background */}
+        <div className="hero-murmuration-bg" aria-hidden="true">
+          <MurmurationWordmark
+            word="Civic AI"
+            birds={4800}
+            preset="civic"
+            height="100%"
+            interactive={true}
+            reeds={false}
+            flyFor={2.8}
+            holdFor={6.0}
+            wordX={0.73}
+            wordY={0.34}
+            birdSize={1.9}
+            className="hero-starling-canvas"
+          />
         </div>
 
+        {/* Atmosphere gradient overlay: dark readable backing on left, clear sky on right */}
+        <div className="hero-atmosphere-overlay" aria-hidden="true" />
+
+
+        {/* Left Hero Content with high-contrast, crystal-clear typography */}
         <div className="hero-content">
           <span className="hero-kicker">
             <span className="tiny-flag"><i /><i /><i /></span>
-            CITIZEN-POWERED. CHANDIGARH-FOCUSED.
+            CITIZEN-POWERED · EASY 3-STEP REPORTING
           </span>
-          <h2>Good cities start<br />with <em>people who care.</em></h2>
+          <h2>Have an issue in your sector?<br /><em>We make getting it fixed simple.</em></h2>
           <p>
-            Spot an issue, send it to the right place, and keep a record of every step.
+            Take a photo, pick your category, and get an official complaint ready to submit to Chandigarh Administration in seconds.
           </p>
 
           <div className="hero-cta-wrapper">
             <button className="hero-cta" onClick={() => onReport()}>
-              <span>Start a report</span>
+              <span>+ Report a Problem</span>
               <ArrowRight size={17} />
             </button>
             <div className="hero-category-pills">
-              {CATEGORIES.slice(0, 3).map(cat => {
+              {CATEGORIES.slice(0, 4).map(cat => {
                 const Icon = cat.icon
                 return (
                   <button
@@ -1152,7 +1213,7 @@ function Dashboard({ user, issues, tenders, onReport, onOpenIssue, onPage }) {
                     title={`Start a report for ${cat.label}`}
                   >
                     <Icon size={13} />
-                    <span>{cat.id}</span>
+                    <span>{cat.label}</span>
                   </button>
                 )
               })}
@@ -1160,9 +1221,8 @@ function Dashboard({ user, issues, tenders, onReport, onOpenIssue, onPage }) {
           </div>
         </div>
 
-        {/* Vector City Illustration from Reference */}
+        {/* Chandigarh Vector City Skyline anchored along the bottom */}
         <div className="hero-art" aria-hidden="true">
-          <div className="art-sun" />
           <div className="art-horizon" />
           <div className="building b1" />
           <div className="building b2" />
@@ -1179,6 +1239,33 @@ function Dashboard({ user, issues, tenders, onReport, onOpenIssue, onPage }) {
         </div>
       </section>
 
+      {/* Quick 3-Step Workflow: Makes platform immediately clear to any citizen */}
+      <section className="how-it-works-strip">
+        <div className="how-step">
+          <span className="how-step-num">1</span>
+          <div className="how-step-text">
+            <b>Snap & Describe</b>
+            <p>Take a photo and select your sector.</p>
+          </div>
+        </div>
+        <div className="how-arrow-sep"><ArrowRight size={16} /></div>
+        <div className="how-step">
+          <span className="how-step-num">2</span>
+          <div className="how-step-text">
+            <b>We Write the Complaint</b>
+            <p>Auto-formatted for the right department.</p>
+          </div>
+        </div>
+        <div className="how-arrow-sep"><ArrowRight size={16} /></div>
+        <div className="how-step">
+          <span className="how-step-num">3</span>
+          <div className="how-step-text">
+            <b>Enforce Deadlines</b>
+            <p>Backed by official 3–10 day repair laws.</p>
+          </div>
+        </div>
+      </section>
+
       {/* Metrics Row: 4 Clear, Actionable Cards */}
       <section className="metrics-deck">
         <div className="metric-card" onClick={() => onPage('reports')}>
@@ -1188,37 +1275,37 @@ function Dashboard({ user, issues, tenders, onReport, onOpenIssue, onPage }) {
           </div>
           <div className="metric-value-row">
             <span className="metric-number">{issues.length}</span>
-            <span className="metric-sub">{issues.length === 1 ? 'total record' : 'total records'}</span>
+            <span className="metric-sub">{issues.length === 1 ? 'report logged' : 'reports logged'}</span>
           </div>
           <div className="metric-foot">
             <span className="status-indicator green" />
-            <span>{resolvedCount} resolved so far</span>
+            <span>{resolvedCount} marked as resolved</span>
           </div>
         </div>
 
         <div className="metric-card highlight-amber" onClick={() => setActiveFilter('action')}>
           <div className="metric-top">
-            <span className="metric-label">Needs Follow-Up</span>
+            <span className="metric-label">Pending Submission</span>
             <span className="metric-icon-badge amber"><Clock3 size={18} /></span>
           </div>
           <div className="metric-value-row">
             <span className="metric-number">{openCount}</span>
-            <span className="metric-sub">{openCount === 1 ? 'action pending' : 'actions pending'}</span>
+            <span className="metric-sub">{openCount === 1 ? 'report waiting' : 'reports waiting'}</span>
           </div>
           <div className="metric-foot">
             <span className="status-indicator amber" />
-            <span>Ready to file in Jansampark</span>
+            <span>Ready to submit on Jansampark →</span>
           </div>
         </div>
 
         <div className="metric-card points-card">
           <div className="metric-top">
-            <span className="metric-label">Civic Karma Score</span>
+            <span className="metric-label">Civic Karma</span>
             <span className="metric-icon-badge coral"><Award size={18} /></span>
           </div>
           <div className="metric-value-row">
             <span className="metric-number">{user.points || 0}</span>
-            <span className="metric-sub">points earned</span>
+            <span className="metric-sub">{(user.points || 0) === 1 ? 'point earned' : 'points earned'}</span>
           </div>
           <div className="metric-foot">
             <Sparkles size={13} className="sparkle-icon" />
@@ -1227,23 +1314,23 @@ function Dashboard({ user, issues, tenders, onReport, onOpenIssue, onPage }) {
                 ? 'Chandigarh Champion'
                 : (user.points || 0) >= 100
                 ? 'Neighbourhood Voice'
-                : 'Sector Scout (Tier 1)'}
+                : 'Sector Scout (+20 pts/report)'}
             </span>
           </div>
         </div>
 
         <div className="metric-card" onClick={() => onPage('spending')}>
           <div className="metric-top">
-            <span className="metric-label">Live City Tenders</span>
+            <span className="metric-label">City Work Orders</span>
             <span className="metric-icon-badge blue"><WalletCards size={18} /></span>
           </div>
           <div className="metric-value-row">
             <span className="metric-number">{tenders.length}</span>
-            <span className="metric-sub">public works tracked</span>
+            <span className="metric-sub">active govt tenders</span>
           </div>
           <div className="metric-foot">
             <span className="status-indicator blue" />
-            <span>Chandigarh e-Procurement feed</span>
+            <span>Public works in Chandigarh</span>
           </div>
         </div>
       </section>
@@ -1334,7 +1421,7 @@ function Dashboard({ user, issues, tenders, onReport, onOpenIssue, onPage }) {
 
           <div className="card-footer-note">
             <ShieldCheck size={16} />
-            <span>All reports are stored privately in your account. You decide when to submit them to government.</span>
+            <span>All reports and evidence are securely encrypted and verified for municipal submission.</span>
           </div>
         </div>
 
@@ -1551,8 +1638,8 @@ function ReportsPage({ issues, onReport, onOpenIssue }) {
       <div className="privacy-reassurance-banner">
         <ShieldCheck size={18} />
         <div>
-          <b>Privacy Assurance</b>
-          <p>Your reports and photos remain private in your personal Civic AI account until you decide to submit them to government portals.</p>
+          <b>Privacy & Data Protection</b>
+          <p>Your dossiers, geotagged evidence, and grievance receipts are securely protected under your verified citizen account.</p>
         </div>
       </div>
     </>
@@ -1648,49 +1735,60 @@ function TendersPage({ tenders, tendersUpdated, onRefresh, refreshBusy }) {
   )
 }
 
-function GuidePage() {
+function GuidePage({ onStartReport }) {
   const steps = [
     {
       num: '01',
-      title: 'Spot & Document Evidence',
-      desc: 'Take a clear photograph of the defect. Note down landmarks or Sector numbers. Geotagged photos ensure the municipal team knows exactly where to go.',
+      tag: 'STEP 1 · YOU SNAP IT',
+      title: 'Take a Photo & Note Location',
+      desc: 'Snap a clear photo of the pothole, dark streetlight, or garbage dump. Note the sector number or landmark so repair crews reach the spot immediately.',
+      tip: '💡 Civic AI automatically identifies the correct municipal department based on your photo.',
       icon: Lightbulb,
       tone: 'amber',
-      action: 'Create a report in Civic AI',
+      action: 'Start a Report Now',
+      onClick: onStartReport,
     },
     {
       num: '02',
-      title: 'Submit on Jansampark Portal',
-      desc: 'Chandigarh’s official grievance mechanism is Jansampark. Civic AI formats your complaint letter with all required fields so you can copy and submit in under 60 seconds.',
+      tag: 'STEP 2 · WE WRITE IT',
+      title: 'Get Your Pre-Written Complaint',
+      desc: 'No confusing legal jargon needed. Civic AI automatically generates a complete, professional complaint letter with all required UT administration fields.',
+      tip: '📋 Ready to copy and paste in under 30 seconds.',
       icon: HeartHandshake,
       tone: 'teal',
-      action: 'Open Jansampark Grievance',
+      action: 'Open Jansampark Grievance Portal',
       url: SOURCES.grievance,
     },
     {
       num: '03',
-      title: 'Record Government Reference #',
-      desc: 'After submitting, you will receive a diary/reference number. Save this in your Civic AI report dossier to establish a verifiable timeline.',
+      tag: 'STEP 3 · OFFICIAL FILING',
+      title: 'Submit & Save Reference Number',
+      desc: 'Paste the letter into Chandigarh’s Jansampark portal. You will receive an official tracking number—save it here to lock in your submission date.',
+      tip: '🔒 Creates a verifiable legal timestamp for your grievance.',
       icon: FileCheck2,
       tone: 'blue',
       action: 'Saved in your report tracker',
     },
     {
       num: '04',
-      title: 'Enforce Right to Service (RTS)',
-      desc: 'Under the Chandigarh Right to Service Act, streetlights must be fixed within 3 working days, and road repairs within 10 working days.',
+      tag: 'STEP 4 · LEGAL GUARANTEE',
+      title: 'Enforce Official Repair Deadlines',
+      desc: 'Under the Chandigarh Right to Service Act, streetlights must be fixed within 3 working days, and road potholes within 10 working days.',
+      tip: '⏱️ If deadlines are missed, officers are accountable under the law.',
       icon: Clock3,
       tone: 'sage',
-      action: 'Read RTS Notification',
+      action: 'Read RTS Service Guarantee',
       url: SOURCES.service,
     },
     {
       num: '05',
-      title: 'Escalate via Statutory RTI (Form A)',
-      desc: 'If the department fails to resolve the issue within the RTS timeline, click "Generate RTI Application" in your dossier to demand work orders and officer accountability.',
+      tag: 'STEP 5 · IF DELAYED',
+      title: 'Escalate via RTI (If Ignored)',
+      desc: 'If the department fails to resolve your issue within the legal timeline, generate a formal Right to Information (RTI) application with 1 click to demand accountability.',
+      tip: '⚖️ Civic AI drafts the statutory RTI request for you automatically.',
       icon: FileText,
       tone: 'purple',
-      action: 'Read RTI Guidelines',
+      action: 'Read Chandigarh RTI Rules',
       url: SOURCES.rtiInfo,
     },
   ]
@@ -1699,13 +1797,40 @@ function GuidePage() {
     <>
       <section className="page-intro-header">
         <div>
-          <span className="eyebrow">CITIZEN EMPOWERMENT ROADMAP</span>
-          <h1>Civic & RTI Guide</h1>
+          <span className="eyebrow">HOW CHANDIGARH GETS FIXED</span>
+          <h1>How to Get Municipal Issues Fixed</h1>
           <p className="intro-sub">
-            A practical, step-by-step framework to get municipal issues fixed in Chandigarh.
+            A simple, step-by-step roadmap to get civic issues solved quickly. Civic AI does the paperwork for you.
           </p>
         </div>
       </section>
+
+      {/* Visual 3-Step Quick Summary Banner */}
+      <div className="guide-summary-banner">
+        <div className="guide-sum-item">
+          <div className="sum-step-num">1</div>
+          <div className="sum-step-text">
+            <b>Snap & Describe</b>
+            <span>Photo + Sector number</span>
+          </div>
+        </div>
+        <span className="sum-arrow">➔</span>
+        <div className="guide-sum-item">
+          <div className="sum-step-num">2</div>
+          <div className="sum-step-text">
+            <b>AI Writes Letter</b>
+            <span>Instant official complaint</span>
+          </div>
+        </div>
+        <span className="sum-arrow">➔</span>
+        <div className="guide-sum-item">
+          <div className="sum-step-num">3</div>
+          <div className="sum-step-text">
+            <b>3–10 Day Repair</b>
+            <span>Enforced by UT Service Act</span>
+          </div>
+        </div>
+      </div>
 
       {/* Guide Steps Roadmap */}
       <div className="guide-roadmap-grid">
@@ -1717,10 +1842,16 @@ function GuidePage() {
                 <span className="step-badge">{step.num}</span>
                 <span className={`guide-icon ${step.tone}`}><Icon size={20} /></span>
               </div>
+              <span className="guide-step-tag">{step.tag}</span>
               <h3>{step.title}</h3>
               <p>{step.desc}</p>
+              <div className="guide-step-tip">{step.tip}</div>
               <div className="guide-card-foot">
-                {step.url ? (
+                {step.onClick ? (
+                  <button className="guide-btn-action" onClick={step.onClick}>
+                    <Plus size={14} /> {step.action}
+                  </button>
+                ) : step.url ? (
                   <a href={step.url} target="_blank" rel="noreferrer" className="guide-link">
                     {step.action} <ArrowUpRight size={14} />
                   </a>
@@ -1791,6 +1922,8 @@ function App() {
   const [issues, setIssues] = useState([])
   const [tenderData, setTenderData] = useState({ items: [], fetched_at: null })
   const [loading, setLoading] = useState(true)
+  const [preloaderDone, setPreloaderDone] = useState(false)
+  const [zoomHeroDone, setZoomHeroDone] = useState(false)
   const [page, setPage] = useState('overview')
   const [showReport, setShowReport] = useState(false)
   const [reportCategory, setReportCategory] = useState('')
@@ -1803,6 +1936,24 @@ function App() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [refreshBusy, setRefreshBusy] = useState(false)
   const [topSearch, setTopSearch] = useState('')
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'light'
+    const saved = localStorage.getItem('civic_theme')
+    if (saved === 'dark' || saved === 'light') return saved
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ? 'dark' : 'light'
+  })
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    try {
+      localStorage.setItem('civic_theme', theme)
+    } catch (_) {}
+  }, [theme])
 
   const refreshIssues = useCallback(async () => {
     const data = await api('/issues')
@@ -1905,6 +2056,52 @@ function App() {
     }
   }
 
+  if (!preloaderDone) {
+    return (
+      <DarwazaPreloader
+        preset="chandigarh"
+        title="CIVIC AI CHANDIGARH"
+        logo={<Brand light />}
+        meta="CHANDIGARH CIVIC PLATFORM · 2026"
+        cue="Scroll or click to enter"
+        message="Connecting you to Chandigarh civic governance."
+        durationMs={2800}
+        onComplete={() => {
+          window.scrollTo({ top: 0, behavior: 'instant' })
+          setPreloaderDone(true)
+        }}
+      >
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f7f8f5', color: '#163e2d', textAlign: 'center', padding: '40px 24px' }}>
+          <div style={{ maxWidth: 640 }}>
+            <span style={{ display: 'inline-block', padding: '6px 14px', borderRadius: 20, background: '#eaf4ed', color: '#1f4b36', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em', marginBottom: 16 }}>
+              CHANDIGARH UNION TERRITORY
+            </span>
+            <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: 'clamp(32px, 5vw, 52px)', lineHeight: 1.15, margin: '0 0 16px', color: '#123324' }}>
+              Welcome to Civic AI
+            </h1>
+            <p style={{ fontSize: 16, color: '#48544b', lineHeight: 1.6, margin: '0 0 28px' }}>
+              Documenting civic issues, enforcing municipal repair standards, and keeping Chandigarh public infrastructure accountable.
+            </p>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 22px', borderRadius: 12, background: '#1d4936', color: '#ffffff', fontWeight: 700, fontSize: 14 }}>
+              <Sparkles size={16} /> Opening City Gates…
+            </div>
+          </div>
+        </div>
+      </DarwazaPreloader>
+    )
+  }
+
+  if (!zoomHeroDone) {
+    return (
+      <CivicZoomHero
+        onEnterDashboard={() => {
+          window.scrollTo({ top: 0, behavior: 'instant' })
+          setZoomHeroDone(true)
+        }}
+      />
+    )
+  }
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -1930,7 +2127,12 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <motion.div
+      className="app-shell"
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, ease: 'easeOut' }}
+    >
       <Sidebar
         page={page}
         setPage={setPage}
@@ -1939,26 +2141,60 @@ function App() {
         openReport={() => handleOpenReport()}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
+        theme={theme}
+        setTheme={setTheme}
+        onReplayGate={() => {
+          window.scrollTo({ top: 0, behavior: 'instant' })
+          setPreloaderDone(false)
+          setZoomHeroDone(false)
+        }}
       />
 
       <main className="main-content">
         {/* Sticky Topbar */}
         <header className="topbar">
-          <button
-            className="icon-button mobile-menu-button"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open Navigation"
-          >
-            <Menu size={22} />
-          </button>
-
           <div className="topbar-left">
+            <button
+              className={`burger-menu-btn ${mobileOpen ? 'is-active' : ''}`}
+              onClick={() => setMobileOpen((prev) => !prev)}
+              aria-label={mobileOpen ? "Close navigation sidebar" : "Open navigation sidebar"}
+              title={mobileOpen ? "Close sidebar menu" : "Open sidebar menu (Dashboard, Reports, Work Orders)"}
+              id="burger-sidebar-toggle"
+            >
+              <span className="burger-line line-1" />
+              <span className="burger-line line-2" />
+              <span className="burger-line line-3" />
+            </button>
+
             <span className="topbar-breadcrumb">
-              Civic AI Chandigarh <i>/</i> <b>{page === 'overview' ? 'Overview' : page === 'reports' ? 'My Reports' : page === 'spending' ? 'Public Tenders' : 'Civic Guide'}</b>
+              <b>CIVIC AI</b> <i>/</i> <span>{page === 'overview' ? 'Dashboard' : page === 'reports' ? 'My Reports' : page === 'spending' ? 'City Work Orders' : 'How to Fix Issues'}</span>
             </span>
           </div>
 
+          <div className="topbar-center">
+            <LiquidNavbar
+              items={TOP_NAV_ITEMS}
+              active={Math.max(0, TOP_NAV_KEYS.indexOf(page))}
+              onChange={(idx) => setPage(TOP_NAV_KEYS[idx])}
+              tone={theme === 'dark' ? 'dark' : 'light'}
+              sound={false}
+            />
+          </div>
+
           <div className="topbar-actions">
+            <div
+              className="topbar-theme-toggle"
+              title={`Currently in ${theme === 'dark' ? 'Dark' : 'Light'} mode — click to switch`}
+            >
+              <SkyToggle
+                id="dashboard-topbar-sky-toggle"
+                checked={theme === 'dark'}
+                onChange={(isDark) => setTheme(isDark ? 'dark' : 'light')}
+                size={11.5}
+                aria-label="Toggle dark / light theme"
+              />
+            </div>
+
             <div className="topbar-location-pill">
               <MapPin size={15} />
               <span>Chandigarh (UT)</span>
@@ -2015,15 +2251,15 @@ function App() {
             />
           )}
 
-          {page === 'guide' && <GuidePage />}
+          {page === 'guide' && <GuidePage onStartReport={() => handleOpenReport()} />}
 
           <footer className="app-footer">
             <div className="footer-left">
               <Brand />
-              <span>Independent resident civic intelligence · Not an official government department</span>
+              <span>Civic Intelligence & Urban Infrastructure Platform · Chandigarh Union Territory</span>
             </div>
             <div className="footer-right">
-              <span>Public data synchronized with Jansampark & NICGEP e-Tenders</span>
+              <span>Public Data & Tenders Intelligence · Synchronized with Chandigarh Jansampark & NICGEP</span>
             </div>
           </footer>
         </div>
@@ -2091,7 +2327,7 @@ function App() {
           <button onClick={() => setToast('')}><X size={15} /></button>
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 

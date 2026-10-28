@@ -23,13 +23,19 @@ export interface MurmurationPalette {
   ink: string
 }
 
-export type MurmurationPreset = "dusk" | "dawn" | "paper" | "night"
+export type MurmurationPreset = "dusk" | "dawn" | "paper" | "night" | "civic" | "twilight"
 
 export interface MurmurationWordmarkProps {
   /** The word the flock forms. Short and bold reads best. */
   word?: string
+  /** Horizontal fraction for word center (0..1). Defaults to 0.5. */
+  wordX?: number
+  /** Vertical fraction for word center (0..1). Defaults to 0.44. */
+  wordY?: number
   /** How many starlings. Scaled down on small screens. Defaults to 4200. */
   birds?: number
+  /** Base scale for bird wings. Defaults to 1.8. */
+  birdSize?: number
   /** Sky and ink. Defaults to "dusk". */
   preset?: MurmurationPreset
   /** Colour overrides, merged over the preset. */
@@ -52,6 +58,8 @@ export interface MurmurationWordmarkProps {
 }
 
 const PRESETS: { [K in MurmurationPreset]: MurmurationPalette } = {
+  civic: { skyTop: "#092016", skyLow: "#194833", sun: "#f6c879", ink: "#ffffff" },
+  twilight: { skyTop: "#0f1f38", skyLow: "#2b4a5f", sun: "#ffd59e", ink: "#ffffff" },
   dusk: { skyTop: "#1d2b44", skyLow: "#e89a6a", sun: "#ffd2a0", ink: "#14100f" },
   dawn: { skyTop: "#9fb4c9", skyLow: "#f3d6c2", sun: "#fff3df", ink: "#1f2329" },
   paper: { skyTop: "#efe9dd", skyLow: "#e6ddcc", sun: "#ffffff", ink: "#1a1714" },
@@ -141,7 +149,10 @@ const MMW_CSS = `
 
 export default function MurmurationWordmark({
   word = "flock",
+  wordX,
+  wordY,
   birds = 4200,
+  birdSize,
   preset = "dusk",
   palette,
   flyFor = 7,
@@ -158,7 +169,7 @@ export default function MurmurationWordmark({
   const canvasRef = React.useRef(null as HTMLCanvasElement | null)
   const opts = React.useRef({ flyFor, holdFor, interactive })
   opts.current = { flyFor, holdFor, interactive }
-  const key = [word, birds, colors.skyTop, colors.skyLow, colors.sun, colors.ink, reeds, fontFamily].join("|")
+  const key = [word, birds, colors.skyTop, colors.skyLow, colors.sun, colors.ink, reeds, fontFamily, wordX, wordY, birdSize].join("|")
 
   React.useEffect(() => {
     const root = rootRef.current
@@ -212,9 +223,11 @@ export default function MurmurationWordmark({
         g.addColorStop(1, colors.skyLow)
         s.fillStyle = g
         s.fillRect(0, 0, w, h)
-        const sun = s.createRadialGradient(w * 0.62, h * 0.86, 0, w * 0.62, h * 0.86, Math.max(w, h) * 0.55)
+        const sunX = (wordX !== undefined && w >= 860) ? w * (wordX * 0.98) : w * 0.62
+        const sunY = (wordY !== undefined && w >= 860) ? h * 0.82 : h * 0.86
+        const sun = s.createRadialGradient(sunX, sunY, 0, sunX, sunY, Math.max(w, h) * 0.55)
         sun.addColorStop(0, colors.sun)
-        sun.addColorStop(0.25, mmwAlpha(colors.sun, 0.5))
+        sun.addColorStop(0.25, mmwAlpha(colors.sun, 0.55))
         sun.addColorStop(1, mmwAlpha(colors.sun, 0))
         s.globalAlpha = 0.55
         s.fillStyle = sun
@@ -258,16 +271,19 @@ export default function MurmurationWordmark({
       if (mc) {
         mc.font = "900 100px " + fontFamily
         const wordW = mc.measureText(word || " ").width || 1
-        const size = Math.min(((w * 0.74) / wordW) * 100, (h * 0.4) / 0.72)
-        mc.font = "900 " + size + "px " + fontFamily
+        const targetXFraction = (w < 860) ? 0.5 : (wordX ?? 0.5)
+        const targetYFraction = (w < 860) ? 0.28 : (wordY ?? 0.44)
+        const availableW = (w < 860) ? w * 0.84 : (wordX !== undefined ? w * Math.min(0.58, Math.max(0.36, (1 - wordX) * 2.0)) : w * 0.74)
+        const size = Math.min((availableW / wordW) * 100, (h * 0.48) / 0.72)
+        mc.font = "900 " + Math.max(24, Math.round(size)) + "px " + fontFamily
         mc.textAlign = "center"
         mc.textBaseline = "middle"
-        mc.fillText(word || " ", w / 2, h * 0.44)
+        mc.fillText(word || " ", w * targetXFraction, h * targetYFraction)
         const img = mc.getImageData(0, 0, w, h).data
-        const step = Math.max(2, Math.round(Math.sqrt((w * h) / 90000)))
+        const step = Math.max(2, Math.round(Math.sqrt((w * h) / 120000)))
         for (let y = 0; y < h; y += step) {
           for (let x = 0; x < w; x += step) {
-            if (img[(y * w + x) * 4 + 3] > 128) pts.push(x + (rand() - 0.5) * step, y + (rand() - 0.5) * step)
+            if (img[(y * w + x) * 4 + 3] > 110) pts.push(x + (rand() - 0.5) * step, y + (rand() - 0.5) * step)
           }
         }
       }
@@ -384,7 +400,8 @@ export default function MurmurationWordmark({
         for (let i = 0; i < n; i++) {
           const near = depth[i] > 0.78
           if ((pass === 1) !== near) continue
-          const s = (1.6 + depth[i] * 2.2) * (1 - 0.35 * pull)
+          const baseScale = birdSize ?? 1.85
+          const s = (baseScale + depth[i] * 2.3) * (1 - 0.16 * pull)
           const sp = Math.hypot(vx[i], vy[i]) + 0.001
           const dx = vx[i] / sp
           const dy = vy[i] / sp
@@ -401,9 +418,16 @@ export default function MurmurationWordmark({
           ctx.lineTo(bx + wx - nx, by + wy - ny)
         }
         ctx.strokeStyle = colors.ink
-        ctx.globalAlpha = pass === 0 ? 0.55 : 0.92
-        ctx.lineWidth = pass === 0 ? 0.9 : 1.25
+        ctx.globalAlpha = pass === 0 ? 0.65 : 0.98
+        ctx.lineWidth = pass === 0 ? 1.05 : 1.5
+        if (pass === 1 && pull > 0.25) {
+          ctx.shadowColor = "rgba(255, 255, 255, 0.5)"
+          ctx.shadowBlur = 6 * pull
+        } else {
+          ctx.shadowBlur = 0
+        }
         ctx.stroke()
+        ctx.shadowBlur = 0
       }
       ctx.globalAlpha = 1
     }
